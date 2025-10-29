@@ -1,45 +1,34 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrudCloud.api.Models;
 
 public class DatabaseInstance
 {
+    [Key]
     public int Id { get; set; }
 
     [Required]
-    [MaxLength(100)]
-    public string Name { get; set; } // Nombre único de la instancia dado por el usuario
+    public string Motor { get; set; } = string.Empty; // MySQL, PostgreSQL, etc.
 
     [Required]
-    public string UserId { get; set; } // Llave foránea al dueño
-    public virtual User User { get; set; }
-
-    public int EngineId { get; set; } // Llave foránea al motor
-    public virtual DatabaseEngine Engine { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    
+    [ForeignKey("User")]
+    [Required]
+    public int UsuarioId { get; set; }
+    public User? User { get; set; }
 
     [Required]
-    [MaxLength(63)] // Límite de nombre de DB en PostgreSQL
-    public string DbName { get; set; }
+    public string UsuarioDb { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(63)] // Límite de nombre de usuario en PostgreSQL
-    public string DbUser { get; set; }
+    public string Contraseña { get; set; } = string.Empty;
+
+    public int Puerto { get; set; }
 
     [Required]
-    public string DbPasswordHash { get; set; } // Guardar SIEMPRE el hash, nunca la contraseña
+    public string Estado { get; set; } = "running"; // running | stopped | deleted
 
-    public int Port { get; set; } // Puerto externo mapeado en el host
-
-    [Required]
-    [MaxLength(100)]
-    public string Host { get; set; } // IP o dominio del servidor donde corre el contenedor
-
-    [Required]
-    [MaxLength(20)]
-    public string Status { get; set; } // "Creating", "Active", "Deleting", "Error"
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    // Para el borrado lógico (soft delete). Si es null, la instancia está activa.
-    public DateTime? DeletedAt { get; set; }
+    public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 }

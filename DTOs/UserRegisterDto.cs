@@ -1,13 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace CrudCloud.api.Models;
+namespace CrudCloud.api.DTOs;
 
-public class User
+public class UserRegisterDto
 {
-    [Key]
-    public int Id { get; set; }
-
     [Required]
     [StringLength(50)]
     public string Nombre { get; set; } = string.Empty;
@@ -24,12 +20,9 @@ public class User
     [StringLength(100, MinimumLength = 6)]
     public string Contraseña { get; set; } = string.Empty;
 
-    [NotMapped] // No se guarda en BD, solo para validación
+    [Required]
     [Compare("Contraseña", ErrorMessage = "Las contraseñas no coinciden.")]
     public string ConfirmarContraseña { get; set; } = string.Empty;
 
-    [Required]
     public string Plan { get; set; } = "Gratis"; // Gratis, Intermedio, Avanzado
-
-    public ICollection<DatabaseInstance> Instancias { get; set; } = new List<DatabaseInstance>();
 }
