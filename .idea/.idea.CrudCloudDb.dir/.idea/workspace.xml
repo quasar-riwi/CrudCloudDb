@@ -11,6 +11,7 @@
   <component name="ChangeListManager">
     <list default="true" id="97af07a7-11b5-45cb-94be-a1bb51735290" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.CrudCloudDb.dir/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.CrudCloudDb.dir/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
