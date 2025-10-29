@@ -4,19 +4,21 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copiar los archivos del proyecto y restaurar dependencias
-COPY ["CrudCloudDb.api.csproj", "./"]
-RUN dotnet restore "CrudCloudDb.api.csproj"
+# Copiar el archivo del proyecto usando la ruta relativa de la subcarpeta
+COPY ["CrudCloud.api/CrudCloud.api.csproj", "./"] 
+RUN dotnet restore "CrudCloud.api.csproj"
 
-# Copiar el resto del código y compilar
+# Copiar el resto del código (incluyendo la subcarpeta CrudCloud.api) y compilar
 COPY . .
-RUN dotnet build "CrudCloudDb.api.csproj" -c Release -o /app/build
+# Usamos la ruta completa del archivo de proyecto dentro del WORKDIR (/src/CrudCloud.api/CrudCloud.api.csproj)
+RUN dotnet build "CrudCloudCloud.api/CrudCloud.api.csproj" -c Release -o /app/build
 
 # -----------------------------
 # Etapa 2: Publish (publicación)
 # -----------------------------
 FROM build AS publish
-RUN dotnet publish "CrudCloudDb.api.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# Usamos la ruta completa del archivo de proyecto para publicar
+RUN dotnet publish "CrudCloud.api/CrudCloud.api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # -----------------------------
 # Etapa 3: Runtime (ejecución)
@@ -29,4 +31,5 @@ EXPOSE 8081
 # Copiar archivos publicados desde la etapa anterior
 COPY --from=publish /app/publish .
 
-ENTRYPOINT ["dotnet", "CrudCloudDb.api.dll"]
+# El nombre del DLL (debería ser CrudCloud.api.dll basado en el csproj)
+ENTRYPOINT ["dotnet", "CrudCloud.api.dll"]
