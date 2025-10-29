@@ -10,16 +10,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="97af07a7-11b5-45cb-94be-a1bb51735290" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Models/AuditLog.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Data/Entities/AuditLog.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Models/DatabaseInstance.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Data/Entities/DatabaseInstance.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Models/User.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Data/Entities/User.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Repositories/AuditLogRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Data/Repositories/Implementations/AuditLogRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Repositories/DatabaseInstanceRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Data/Repositories/Implementations/DatabaseInstanceRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Repositories/IAuditLogRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Data/Repositories/Interfaces/IAuditLogRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Repositories/IDatabaseInstanceRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Data/Repositories/Interfaces/IDatabaseInstanceRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/IAuditService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/Interfaces/IAuditService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/IDatabaseInstanceService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/Interfaces/IDatabaseInstanceService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/IUserService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/Interfaces/IUserService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.CrudCloudDb.dir/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.CrudCloudDb.dir/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -146,6 +137,7 @@
       <workItem from="1761605260003" duration="8277000" />
       <workItem from="1761615699344" duration="3228000" />
       <workItem from="1761686608912" duration="16535000" />
+      <workItem from="1761766587658" duration="2634000" />
     </task>
     <servers />
   </component>
