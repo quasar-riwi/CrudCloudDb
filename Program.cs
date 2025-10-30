@@ -5,23 +5,41 @@ using CrudCloud.api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer; 
 using Microsoft.IdentityModel.Tokens;
-using System.Text; 
+using System.Text;
+using CrudCloud.api.Models; 
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+// 1. DEFINIR POLÍTICA DE CORS
+var frontendAppPolicy = "FrontendAppPolicy";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: frontendAppPolicy, policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8080")
+              .AllowAnyHeader()  
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+
+//  REGISTRO DE SERVICIOS
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Repositorios
+// ... (El resto del registro de servicios se queda igual)
 builder.Services.AddScoped<IDatabaseInstanceRepository, DatabaseInstanceRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
-
-// Servicios
 builder.Services.AddScoped<IDatabaseInstanceService, DatabaseInstanceService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IUserService, UserService>();
-
-// AutoMapper
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings")
+);
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 // Configuración de JWT
@@ -48,16 +66,12 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization(); 
-
-// Controladores
+builder.Services.AddAuthorization();
 builder.Services.AddControllers();
-
-// Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options => 
 {
-    // Configuración para que Swagger muestre el botón "Authorize"
+    // ... (Tu configuración de Swagger se queda igual)
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -86,17 +100,20 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 3. PIPELINE DE MIDDLEWARES (EL ORDEN ES MUY IMPORTANTE)
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-app.UseSwagger();
-app.UseSwaggerUI();
+// app.UseHttpsRedirection();
 
 
-app.UseHttpsRedirection();
+app.UseCors(frontendAppPolicy);
 
-// ORDEN IMPORTANTE: Authentication ANTES de Authorization
-app.UseAuthentication(); // Debe ir antes de UseAuthorization
-app.UseAuthorization();  //
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseMiddleware<AuditMiddleware>();
 app.MapControllers();
