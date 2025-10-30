@@ -31,7 +31,16 @@ public class User
     [Required]
     public string Plan { get; set; } = "Gratis";
     
-    public bool IsActive { get; set; } = true; // Por defecto, los usuarios están activos
+    public bool IsActive { get; set; } = false; 
+    public bool EmailVerified { get; set; } = false; // Si el email fue verificado
+    
+    public string? EmailVerificationToken { get; set; } // Token de verificación
+    
+    public DateTime? EmailVerificationTokenExpires { get; set; } // Fecha de expiración del token
+    
+    public string? PasswordResetToken { get; set; } // Token de reseteo
+    
+    public DateTime? PasswordResetTokenExpires { get; set; } // Fecha de expiración del token de reseteo
 
     public ICollection<DatabaseInstance> Instancias { get; set; } = new List<DatabaseInstance>();
 }

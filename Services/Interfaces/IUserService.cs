@@ -12,5 +12,10 @@ public interface IUserService
     
     Task<User?> ToggleStatusAsync(int id);
     Task<string?> LoginAsync(UserLoginDto dto);
+    
+    Task<bool> VerifyEmailAsync(string token);
+    Task<bool> RequestPasswordResetAsync(string email);
+    Task<bool> ResetPasswordAsync(string token, string newPassword);
+    Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
 
 }
