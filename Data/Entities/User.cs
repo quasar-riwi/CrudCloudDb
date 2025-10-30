@@ -24,12 +24,14 @@ public class User
     [StringLength(100, MinimumLength = 6)]
     public string Contraseña { get; set; } = string.Empty;
 
-    [NotMapped] // No se guarda en BD, solo para validación
+    [NotMapped]
     [Compare("Contraseña", ErrorMessage = "Las contraseñas no coinciden.")]
     public string ConfirmarContraseña { get; set; } = string.Empty;
 
     [Required]
-    public string Plan { get; set; } = "Gratis"; // Gratis, Intermedio, Avanzado
+    public string Plan { get; set; } = "Gratis";
+    
+    public bool IsActive { get; set; } = true; // Por defecto, los usuarios están activos
 
     public ICollection<DatabaseInstance> Instancias { get; set; } = new List<DatabaseInstance>();
 }
