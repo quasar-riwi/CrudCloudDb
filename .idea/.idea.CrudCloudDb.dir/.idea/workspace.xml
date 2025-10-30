@@ -29,6 +29,11 @@
     <option name="firstShow" value="false" />
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="dev" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -110,9 +115,11 @@
       <created>1761766398828</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1761766398828</updated>
-      <workItem from="1761766400545" duration="1588000" />
-      <workItem from="1761768023660" duration="10519000" />
+      <updated>1761605258753</updated>
+      <workItem from="1761605260003" duration="8277000" />
+      <workItem from="1761615699344" duration="3228000" />
+      <workItem from="1761686608912" duration="16535000" />
+      <workItem from="1761766587658" duration="3458000" />
     </task>
     <servers />
   </component>
