@@ -373,3 +373,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 EOF
+
+.idea
