@@ -9,4 +9,8 @@ public interface IUserService
     Task<User?> UpdateAsync(int id, UserUpdateDto dto);
     Task<User?> GetByIdAsync(int id);
     Task<IEnumerable<User>> GetAllAsync();
+    
+    Task<User?> ToggleStatusAsync(int id);
+    Task<string?> LoginAsync(UserLoginDto dto);
+
 }
