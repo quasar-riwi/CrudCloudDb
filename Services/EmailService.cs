@@ -39,11 +39,9 @@ public class EmailService : IEmailService
         }
         catch (Exception ex)
         {
-            // Aquí puedes loguear el error de forma más robusta si lo deseas
-            // Pero al no estar en un try-catch en el servicio, la excepción original
-            // llegará hasta UserService, donde ya la estás manejando.
+            
             Console.WriteLine($"Fallo crítico al enviar email: {ex.Message}");
-            throw; // Re-lanza la excepción para que el servicio que lo llamó se entere.
+            throw; 
         }
     }
 
@@ -65,7 +63,6 @@ public class EmailService : IEmailService
 
     public async Task SendPasswordResetAsync(string toEmail, string userName, string resetToken)
     {
-        // TODO: Reemplaza con la URL de tu frontend para resetear contraseña
         var resetLink = $"https://tu-frontend.com/reset-password?token={resetToken}";
         
         var subject = "Solicitud de recuperación de contraseña";
