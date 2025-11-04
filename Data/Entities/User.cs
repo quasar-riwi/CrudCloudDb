@@ -24,12 +24,23 @@ public class User
     [StringLength(100, MinimumLength = 6)]
     public string Contraseña { get; set; } = string.Empty;
 
-    [NotMapped] // No se guarda en BD, solo para validación
+    [NotMapped]
     [Compare("Contraseña", ErrorMessage = "Las contraseñas no coinciden.")]
     public string ConfirmarContraseña { get; set; } = string.Empty;
 
     [Required]
-    public string Plan { get; set; } = "Gratis"; // Gratis, Intermedio, Avanzado
+    public string Plan { get; set; } = "Gratis";
+    
+    public bool IsActive { get; set; } = false; 
+    public bool EmailVerified { get; set; } = false; // Si el email fue verificado
+    
+    public string? EmailVerificationToken { get; set; } // Token de verificación
+    
+    public DateTime? EmailVerificationTokenExpires { get; set; } // Fecha de expiración del token
+    
+    public string? PasswordResetToken { get; set; } // Token de reseteo
+    
+    public DateTime? PasswordResetTokenExpires { get; set; } // Fecha de expiración del token de reseteo
 
     public ICollection<DatabaseInstance> Instancias { get; set; } = new List<DatabaseInstance>();
 }
