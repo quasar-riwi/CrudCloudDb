@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresAdmin")));
 
 builder.Services.AddScoped<IDatabaseInstanceRepository, DatabaseInstanceRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
