@@ -1,8 +1,8 @@
 ﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CrudCloud.api.DTOs;
 using CrudCloud.api.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CrudCloud.api.Controllers;
 

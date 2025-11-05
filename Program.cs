@@ -28,7 +28,7 @@ builder.Services.AddCors(options =>
 
 //  REGISTRO DE SERVICIOS
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresAdmin")));
 
 // ... (El resto del registro de servicios se queda igual)
 builder.Services.AddScoped<IDatabaseInstanceRepository, DatabaseInstanceRepository>();

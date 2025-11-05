@@ -28,6 +28,9 @@ public class DatabaseInstance
     public int Puerto { get; set; }
 
     [Required]
+    public string Host { get; set; } = string.Empty;
+
+    [Required]
     public string Estado { get; set; } = "running"; // running | stopped | deleted
 
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
