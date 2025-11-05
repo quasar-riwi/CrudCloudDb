@@ -29,13 +29,3 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: admin
     ports:
       - "27017:27017"
-
-  redis:
-    image: redis:6.2
-    ports:
-      - "6379:6379"
-
-  cassandra:
-    image: cassandra:4
-    ports:
-      - "9042:9042"

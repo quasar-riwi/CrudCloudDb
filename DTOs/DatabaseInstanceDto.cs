@@ -8,5 +8,6 @@ public class DatabaseInstanceDto
     public string UsuarioDb { get; set; } = string.Empty;
     public string Contraseña { get; set; } = string.Empty;
     public int Puerto { get; set; }
+    public string Host { get; set; } = string.Empty;
     public string Estado { get; set; } = string.Empty;
 }

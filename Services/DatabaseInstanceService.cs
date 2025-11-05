@@ -39,7 +39,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     public async Task<DatabaseInstanceDto> CreateInstanceAsync(int userId, DatabaseInstanceCreateDto dto)
     {
-        // 1️⃣ Validar motor permitido (case-insensitive)
+        // 1️⃣ Validar motor permitido
         if (!PlanLimits.MotoresPermitidos.Any(m => m.Equals(dto.Motor, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException($"Motor no permitido: {dto.Motor}");
 
@@ -51,54 +51,59 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         if (user == null)
             throw new Exception("Usuario no encontrado.");
 
-        var limite = PlanLimits.MaxPerMotor.ContainsKey(user.Plan) ? PlanLimits.MaxPerMotor[user.Plan] : PlanLimits.MaxPerMotor["Gratis"];
+        var limite = PlanLimits.MaxPerMotor.ContainsKey(user.Plan)
+            ? PlanLimits.MaxPerMotor[user.Plan]
+            : PlanLimits.MaxPerMotor["Gratis"];
 
         // 3️⃣ Validar límite por plan y motor
         int cantidadActual = user.Instancias.Count(i => i.Motor.Equals(dto.Motor, StringComparison.OrdinalIgnoreCase));
         if (cantidadActual >= limite)
             throw new Exception($"Límite de {limite} bases de datos alcanzado para el plan {user.Plan}.");
 
-        // 4️⃣ Generar credenciales únicas (sanitizadas)
-        var random = Guid.NewGuid().ToString("N").Substring(0, 6);
-        var rawName = $"bd_{random}";
-        var rawUser = $"usr_{random}";
-        var rawPwd = $"pwd_{Guid.NewGuid().ToString("N").Substring(0, 12)}";
+        // 4️⃣ Crear nombres únicos y coherentes
+        var motorLower = dto.Motor.ToLower();
 
-        var name = IdentifierSanitizer.Sanitize(rawName);
-        var dbUser = IdentifierSanitizer.Sanitize(rawUser);
-        var password = rawPwd; // password can include more chars
+        // 🔹 Generar sufijo aleatorio corto (6 caracteres)
+        var sufijo = Guid.NewGuid().ToString("N").Substring(0, 6);
 
-        // puerto según motor
-        var puerto = GenerarPuerto(dto.Motor);
+        // 🔹 Crear nombres y credenciales únicas por instancia
+        var nombre = $"db_{userId}_{motorLower}_{sufijo}";
+        var usuarioDb = $"usr_{userId}_{motorLower}_{sufijo}";
+        var contraseña = $"Pwd_{motorLower.Substring(0, 2).ToUpper()}_{sufijo}_{new Random().Next(10, 99)}!";
 
-        // 5️⃣ Intentar crear la base real (si falla, no persisto en app DB)
+        var puerto = ObtenerPuertoPorMotor(motorLower);
+        var host = ObtenerHostPorMotor(motorLower, _config);
+
+        // 5️⃣ Crear instancia real
         try
         {
             await DatabaseCreator.CrearInstanciaRealAsync(
-                dto.Motor,
-                name,
-                dbUser,
-                password,
+                motorLower,
+                nombre,
+                usuarioDb,
+                contraseña,
                 puerto,
-                _config);
+                _config
+            );
         }
         catch (Exception ex)
         {
-            // registra auditoría de fallo
-            await _audit.LogAsync(userId, "CreateFailed", "DatabaseInstance", $"Error creando {dto.Motor}:{name} -> {ex.Message}");
+            await _audit.LogAsync(userId, "CreateFailed", "DatabaseInstance", $"Error creando {dto.Motor}:{nombre} -> {ex.Message}");
             throw new Exception($"Fallo al crear la instancia física: {ex.Message}", ex);
         }
 
-        // 6️⃣ Crear entidad local y persistir
+        // 6️⃣ Crear entidad local
         var instance = new DatabaseInstance
         {
             UsuarioId = userId,
             Motor = dto.Motor,
-            Nombre = name,
-            UsuarioDb = dbUser,
-            Contraseña = password,
+            Nombre = nombre,
+            UsuarioDb = usuarioDb,
+            Contraseña = contraseña,
             Puerto = puerto,
-            Estado = "running"
+            Host = host,
+            Estado = "running",
+            FechaCreacion = DateTime.UtcNow
         };
 
         await _repo.AddAsync(instance);
@@ -107,10 +112,10 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         await _audit.LogAsync(userId, "Create", "DatabaseInstance", $"Creada {dto.Motor}: {instance.Nombre}");
 
         var dtoOut = _mapper.Map<DatabaseInstanceDto>(instance);
-        // incluir credenciales en respuesta (solo primera vez)
-        dtoOut.UsuarioDb = dbUser;
-        dtoOut.Contraseña = password;
+        dtoOut.UsuarioDb = usuarioDb;
+        dtoOut.Contraseña = contraseña;
         dtoOut.Puerto = puerto;
+        dtoOut.Host = host;
 
         return dtoOut;
     }
@@ -121,19 +126,16 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         if (instance == null || instance.UsuarioId != userId)
             return false;
 
-        // 1) intentar eliminar en motor real (si aplica)
         try
         {
             await DatabaseCreator.EliminarInstanciaRealAsync(instance.Motor, instance.Nombre, instance.UsuarioDb, _config);
         }
         catch (Exception ex)
         {
-            // log y proceed to delete local (o decidir no eliminar)
             await _audit.LogAsync(userId, "DeleteFailed", "DatabaseInstance", $"Error eliminando {instance.Motor}:{instance.Nombre} -> {ex.Message}");
             throw;
         }
 
-        // 2) eliminar registro local
         await _repo.DeleteAsync(instance);
         await _repo.SaveChangesAsync();
 
@@ -141,14 +143,24 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         return true;
     }
 
-    private int GenerarPuerto(string motor) => motor.ToLower() switch
+    private static int ObtenerPuertoPorMotor(string motor) => motor switch
     {
-        "postgresql" => 5432 + new Random().Next(1, 1000),
-        "mysql" => 3306 + new Random().Next(1, 1000),
-        "mongodb" => 27017 + new Random().Next(1, 1000),
-        "sqlserver" => 1433 + new Random().Next(1, 1000),
-        "redis" => 6379 + new Random().Next(1, 1000),
-        "cassandra" => 9042 + new Random().Next(1, 1000),
-        _ => 5000 + new Random().Next(1, 1000)
+        "postgresql" => 5432,
+        "mysql" => 3307,
+        "mongodb" => 27017,
+        "sqlserver" => 1433,
+        _ => 5000
     };
+
+    private static string ObtenerHostPorMotor(string motor, IConfiguration config)
+    {
+        return motor switch
+        {
+            "postgresql" => config["Hosts:Postgres"] ?? "88.198.127.218",
+            "mysql" => config["Hosts:MySQL"] ?? "88.198.127.218",
+            "mongodb" => config["Hosts:Mongo"] ?? "88.198.127.218",
+            "sqlserver" => config["Hosts:SqlServer"] ?? "88.198.127.218",
+            _ => "88.198.127.218"
+        };
+    }
 }

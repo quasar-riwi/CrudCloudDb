@@ -10,5 +10,5 @@ public class PlanLimits
     };
 
     public static readonly string[] MotoresPermitidos = 
-        { "PostgreSQL", "MySQL", "MongoDB", "SQLServer", "Redis", "Cassandra" };
+        { "PostgreSQL", "MySQL", "MongoDB", "SQLServer" };
 }
