@@ -8,7 +8,7 @@ namespace CrudCloud.api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-//[Authorize]
+[Authorize]
 public class DatabaseInstancesController : ControllerBase
 {
     private readonly IDatabaseInstanceService _service;
