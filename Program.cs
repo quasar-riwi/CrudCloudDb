@@ -18,7 +18,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: frontendAppPolicy, policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8080", "https://front.quasar.andrescortes.dev")
+        policy.WithOrigins(
+                "http://localhost:5173", 
+                "http://localhost:3000", 
+                "http://localhost:8080", 
+                "https://front.quasar.andrescortes.dev",
+                "https://quasar.andrescortes.dev",
+                "https://www.quasar.andrescortes.dev"
+                )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
