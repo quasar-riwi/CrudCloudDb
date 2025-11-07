@@ -12,24 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 // 1. DEFINIR POLÍTICA DE CORS
-var frontendAppPolicy = "FrontendAppPolicy";
-
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: frontendAppPolicy, policy =>
-    {
-        policy.WithOrigins(
-                "http://localhost:5173", 
-                "http://localhost:3000", 
-                "http://localhost:8080", 
-                "https://front.quasar.andrescortes.dev",
-                "https://quasar.andrescortes.dev",
-                "https://www.quasar.andrescortes.dev"
-                )
+    options.AddPolicy("AllowSpecificOrigin",
+        builder => builder.WithOrigins("https://quasar.andrescortes.dev")
             .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
+            .AllowAnyMethod());
 });
 
 
@@ -108,15 +96,14 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+app.UseHttpsRedirection();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseRouting();
 
-app.UseHttpsRedirection();
-
-
-app.UseCors(frontendAppPolicy);
+app.UseCors("AllowSpecificOrigin");
 
 app.UseAuthentication();
 app.UseAuthorization();
