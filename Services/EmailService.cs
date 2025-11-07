@@ -63,7 +63,7 @@ public class EmailService : IEmailService
 
     public async Task SendPasswordResetAsync(string toEmail, string userName, string resetToken)
     {
-        var resetLink = $"https://quasar.andrescortes.dev/reset-password?token={resetToken}";
+        var resetLink = $"https://service.quasar.andrescortes.dev/reset-password?token={resetToken}";
         
         var subject = "Solicitud de recuperación de contraseña";
         var body = $@"
