@@ -16,16 +16,10 @@ var frontendAppPolicy = "FrontendAppPolicy";
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: frontendAppPolicy, policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173", 
-                "http://localhost:3000", 
-                "http://localhost:8080", 
-                "https://front.quasar.andrescortes.dev",
-                "https://quasar.andrescortes.dev",
-                "https://www.quasar.andrescortes.dev"
-                )
+        policy
+            .AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -115,7 +109,7 @@ app.UseSwaggerUI();
 
 app.UseRouting();
 
-app.UseCors(frontendAppPolicy);
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
