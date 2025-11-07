@@ -12,17 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 // 1. DEFINIR POLÍTICA DE CORS
-var frontendAppPolicy = "FrontendAppPolicy";
-
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy
-            .AllowAnyOrigin()
+    options.AddPolicy("AllowSpecificOrigin",
+        builder => builder.WithOrigins("https://quasar.andrescortes.dev")
             .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
+            .AllowAnyMethod());
 });
 
 
@@ -108,7 +103,7 @@ app.UseSwaggerUI();
 
 app.UseRouting();
 
-app.UseCors("AllowAll");
+app.UseCors("AllowSpecificOrigin");
 
 app.UseAuthentication();
 app.UseAuthorization();
