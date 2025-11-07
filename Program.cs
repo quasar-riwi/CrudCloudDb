@@ -108,13 +108,14 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-app.UseCors(frontendAppPolicy);
+app.UseHttpsRedirection();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseRouting();
 
-app.UseHttpsRedirection();
+app.UseCors(frontendAppPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();
