@@ -49,7 +49,7 @@ public class EmailService : IEmailService
     {
         
         var verificationLink = $"https://quasar.andrescortes.dev/verify-email?token={verificationToken}";
-
+        
         var subject = "¡Confirma tu correo electrónico en CrudCloud!";
         var body = $@"
             <h1>¡Bienvenido a CrudCloud, {userName}!</h1>
@@ -63,7 +63,7 @@ public class EmailService : IEmailService
 
     public async Task SendPasswordResetAsync(string toEmail, string userName, string resetToken)
     {
-        var resetLink = $"https://service.quasar.andrescortes.dev/reset-password?token={resetToken}";
+        var resetLink = $"quasar.andrescortes.dev/reset-password?token={resetToken}";
         
         var subject = "Solicitud de recuperación de contraseña";
         var body = $@"
