@@ -10,7 +10,6 @@ using CrudCloud.api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 // 1. DEFINIR POLÍTICA DE CORS
 builder.Services.AddCors(options =>
 {
@@ -20,24 +19,30 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod());
 });
 
+// 2. HTTP CLIENT (PARA DISCORD WEBHOOKS)
+builder.Services.AddHttpClient();
 
-//  REGISTRO DE SERVICIOS
+// 3. DATABASE
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresAdmin")));
 
-// ... (El resto del registro de servicios se queda igual)
+// 4. CONFIGURATION SETTINGS
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.Configure<DiscordWebhookSettings>(builder.Configuration.GetSection("DiscordWebhookSettings"));
+
+// 5. SERVICES
 builder.Services.AddScoped<IDatabaseInstanceRepository, DatabaseInstanceRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IDatabaseInstanceService, DatabaseInstanceService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.Configure<EmailSettings>(
-    builder.Configuration.GetSection("EmailSettings")
-);
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IDiscordWebhookService, DiscordWebhookService>(); // ✅ AGREGADO
+
+// 6. AUTOMAPPER
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-// Configuración de JWT
+// 7. JWT AUTHENTICATION
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -61,12 +66,12 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
+// 8. CONTROLLERS & SWAGGER
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    // ... (Tu configuración de Swagger se queda igual)
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -74,8 +79,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description =
-            "Ingrese 'Bearer' seguido de un espacio y el token JWT.\n\nEjemplo: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        Description = "Ingrese 'Bearer' seguido de un espacio y el token JWT.\n\nEjemplo: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     });
 
     options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
@@ -96,18 +100,14 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// 9. MIDDLEWARE PIPELINE
 app.UseHttpsRedirection();
-
 app.UseSwagger();
 app.UseSwaggerUI();
-
 app.UseRouting();
-
 app.UseCors("AllowSpecificOrigin");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseMiddleware<AuditMiddleware>();
 app.MapControllers();
 
