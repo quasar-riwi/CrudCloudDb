@@ -463,6 +463,7 @@ public class EmailService : IEmailService
     public async Task SendPasswordResetAsync(string toEmail, string userName, string resetToken)
     {
         var resetLink = $"https://quasar.andrescortes.dev/reset-password?token={resetToken}";
+		var subject = "Restablecer Contraseña - CrudCloud";
         
         var content = @"<p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.</p>
             <div class='highlight'>
