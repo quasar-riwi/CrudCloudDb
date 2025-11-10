@@ -193,8 +193,8 @@ public class EmailService : IEmailService
         
         .button {{
             display: inline-block;
-            background: linear-gradient(135deg, #007bff 0%, #6441a5 50%, #40e0d0 100%);
-            color: white;
+            background: linear-gradient(135deg, #0d1a2b 0%, #1a2d4a 100%);
+            color: #ffffff;
             padding: 16px 40px;
             text-decoration: none;
             border-radius: 12px;
@@ -202,13 +202,15 @@ public class EmailService : IEmailService
             font-size: 16px;
             transition: all 0.4s ease;
             box-shadow: 
-                0 8px 25px rgba(0, 123, 255, 0.4),
-                0 0 30px rgba(64, 224, 208, 0.3);
-            border: 1px solid rgba(64, 224, 208, 0.3);
+                0 8px 25px rgba(41, 217, 194, 0.3),
+                0 0 20px rgba(64, 224, 208, 0.2);
+            border: none;
             position: relative;
             overflow: hidden;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }}
-        
+
         .button::before {{
             content: '';
             position: absolute;
@@ -216,17 +218,19 @@ public class EmailService : IEmailService
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
+            background: linear-gradient(90deg, transparent, rgba(64, 224, 208, 0.2), transparent);
+            transition: left 0.6s;
         }}
-        
+
         .button:hover {{
-            transform: translateY(-3px);
+            background: linear-gradient(135deg, #1a2d4a 0%, #243b5c 100%);
+            transform: translateY(-2px);
             box-shadow: 
-                0 12px 35px rgba(0, 123, 255, 0.6),
-                0 0 50px rgba(64, 224, 208, 0.5);
+                0 12px 35px rgba(41, 217, 194, 0.4),
+                0 0 30px rgba(64, 224, 208, 0.3);
+            color: #f0f8ff;
         }}
-        
+
         .button:hover::before {{
             left: 100%;
         }}
