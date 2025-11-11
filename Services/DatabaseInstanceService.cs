@@ -130,6 +130,9 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         if (instance == null || instance.UserId != userId)
             return false;
         
+        if (instance.User == null)
+            throw new Exception("Usuario asociado a la instancia no encontrado.");
+        
         var userEmail = instance.User.Correo;
         var userName = instance.User.Nombre;
 
