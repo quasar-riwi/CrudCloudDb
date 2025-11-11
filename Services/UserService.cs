@@ -116,15 +116,15 @@ public class UserService : IUserService
     }
 
     //  Solicitar recuperación de contraseña
-    public async Task<bool> RequestPasswordResetAsync(string email)
+     public async Task<bool> RequestPasswordResetAsync(string email)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Correo == email);
         
         if (user == null)
-            return true; // Por seguridad, no revelar si el email existe
+            return true; // Por seguridad, no revelar si el email existe o no.
         
         var resetToken = TokenGenerator.GenerateToken();
-        var tokenExpiration = TokenGenerator.GenerateExpirationDate(24);
+        var tokenExpiration = TokenGenerator.GenerateExpirationDate(1); // 1 hora de expiración es más seguro.
         
         user.PasswordResetToken = resetToken;
         user.PasswordResetTokenExpires = tokenExpiration;
@@ -133,6 +133,7 @@ public class UserService : IUserService
         
         try
         {
+            // --- Llamada correcta: Enviar el correo con el enlace de reseteo. ---
             await _emailService.SendPasswordResetAsync(user.Correo, user.Nombre, resetToken);
         }
         catch (Exception ex)
@@ -143,7 +144,7 @@ public class UserService : IUserService
         return true;
     }
 
-    // Resetear contraseña con token
+    //  Este método debe llamar a SendPasswordResetSuccessAsync para CONFIRMAR EL RESTABLECIMIENTO.
     public async Task<bool> ResetPasswordAsync(string token, string newPassword)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == token);
@@ -160,21 +161,20 @@ public class UserService : IUserService
         
         await _context.SaveChangesAsync();
         
-        // --- Enviar correo de confirmación de RESTABLECIMIENTO exitoso ---
         try
         {
-            // Se usa el nuevo método específico para esta acción
+            // --- Llamada correcta: Enviar el correo de confirmación de que el reseteo fue exitoso. ---
             await _emailService.SendPasswordResetSuccessAsync(user.Correo, user.Nombre);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error enviando email de confirmación de reseteo de contraseña: {ex.Message}");
+            Console.WriteLine($"Error enviando email de confirmación de reseteo: {ex.Message}");
         }
         
         return true;
     }
-    
-    // Cambiar contraseña (usuario autenticado)
+
+    //  Este método llama a SendPasswordChangedConfirmationAsync, lo cual es correcto para esta acción.
     public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
     {
         var user = await _context.Users.FindAsync(userId);
@@ -188,9 +188,9 @@ public class UserService : IUserService
         user.Contraseña = PasswordHasher.HashPassword(newPassword);
         await _context.SaveChangesAsync();
         
-        // Esta llamada ya estaba correcta para el cambio de contraseña
         try
         {
+            // --- Esta llamada ya era correcta. ---
             await _emailService.SendPasswordChangedConfirmationAsync(user.Correo, user.Nombre);
         }
         catch (Exception ex)
