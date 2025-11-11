@@ -14,10 +14,10 @@ public class DatabaseInstanceRepository : IDatabaseInstanceRepository
     }
     
     public async Task<IEnumerable<DatabaseInstance>> GetByUserAsync(int userId)
-        => await _context.DatabaseInstances.Where(x => x.UsuarioId == userId).ToListAsync();
+        => await _context.DatabaseInstances.Where(x => x.UserId == userId).ToListAsync();
 
     public async Task<int> CountByUserAndMotorAsync(int userId, string motor)
-        => await _context.DatabaseInstances.CountAsync(x => x.UsuarioId == userId && x.Motor == motor);
+        => await _context.DatabaseInstances.CountAsync(x => x.UserId == userId && x.Motor == motor);
 
     public async Task<DatabaseInstance?> GetByIdAsync(int id)
         => await _context.DatabaseInstances.FindAsync(id);

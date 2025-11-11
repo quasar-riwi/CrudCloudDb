@@ -86,7 +86,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         // 6️crear entidad local
         var instance = new DatabaseInstance
         {
-            UsuarioId = userId,
+            UserId = userId,
             Motor = dto.Motor,
             Nombre = nombre,
             UsuarioDb = usuarioDb,
@@ -127,7 +127,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
             .Include(i => i.User)
             .FirstOrDefaultAsync(i => i.Id == id);
 
-        if (instance == null || instance.UsuarioId != userId)
+        if (instance == null || instance.UserId != userId)
             return false;
         
         var userEmail = instance.User.Correo;
