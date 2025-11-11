@@ -57,7 +57,6 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             // Log del error pero no fallar el registro
-            // En producción usa ILogger aquí
             Console.WriteLine($"Error enviando email de verificación: {ex.Message}");
         }
 
@@ -83,7 +82,7 @@ public class UserService : IUserService
         return GenerateJwtToken(user);
     }
 
-    // ⭐ NUEVO - Verificar email
+    //  Verificar email
     public async Task<bool> VerifyEmailAsync(string token)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
@@ -156,25 +155,26 @@ public class UserService : IUserService
             throw new InvalidOperationException("El token de recuperación ha expirado. Solicita uno nuevo.");
         
         user.Contraseña = PasswordHasher.HashPassword(newPassword);
-        user.PasswordResetToken = null;
+        user.PasswordResetToken = null; 
         user.PasswordResetTokenExpires = null;
         
         await _context.SaveChangesAsync();
         
-        // --- ✅ CORRECCIÓN: Enviar correo de confirmación de cambio de contraseña ---
+        // --- Enviar correo de confirmación de RESTABLECIMIENTO exitoso ---
         try
         {
-            await _emailService.SendPasswordChangedConfirmationAsync(user.Correo, user.Nombre);
+            // Se usa el nuevo método específico para esta acción
+            await _emailService.SendPasswordResetSuccessAsync(user.Correo, user.Nombre);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error enviando email de confirmación de cambio de contraseña: {ex.Message}");
+            Console.WriteLine($"Error enviando email de confirmación de reseteo de contraseña: {ex.Message}");
         }
         
         return true;
     }
-
-    //  Cambiar contraseña (usuario autenticado)
+    
+    // Cambiar contraseña (usuario autenticado)
     public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
     {
         var user = await _context.Users.FindAsync(userId);
@@ -188,7 +188,7 @@ public class UserService : IUserService
         user.Contraseña = PasswordHasher.HashPassword(newPassword);
         await _context.SaveChangesAsync();
         
-        // --- ✅ CORRECCIÓN: Enviar correo de confirmación de cambio de contraseña ---
+        // Esta llamada ya estaba correcta para el cambio de contraseña
         try
         {
             await _emailService.SendPasswordChangedConfirmationAsync(user.Correo, user.Nombre);
@@ -200,6 +200,7 @@ public class UserService : IUserService
         
         return true;
     }
+
 
     public async Task<User?> UpdateAsync(int id, UserUpdateDto dto)
     {

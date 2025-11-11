@@ -11,4 +11,5 @@ public interface IEmailService
     Task SendDatabaseCreatedEmailAsync(string toEmail, string userName, DatabaseInstance instance);
     Task SendDatabaseDeletedEmailAsync(string toEmail, string userName, DatabaseInstance instance);
     Task SendPasswordChangedConfirmationAsync(string toEmail, string userName); 
+    Task SendPasswordResetSuccessAsync(string toEmail, string userName);
 }

@@ -42,11 +42,11 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     public async Task<DatabaseInstanceDto> CreateInstanceAsync(int userId, DatabaseInstanceCreateDto dto)
     {
-        // 1️⃣ Validar motor permitido
+        // 1️Validar motor permitido
         if (!PlanLimits.MotoresPermitidos.Any(m => m.Equals(dto.Motor, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException($"Motor no permitido: {dto.Motor}");
 
-        // 2️⃣ Obtener usuario y su plan
+        // 2️Obtener usuario y su plan
         var user = await _context.Users
             .Include(u => u.Instancias)
             .FirstOrDefaultAsync(u => u.Id == userId);
@@ -58,12 +58,12 @@ public class DatabaseInstanceService : IDatabaseInstanceService
             ? PlanLimits.MaxPerMotor[user.Plan]
             : PlanLimits.MaxPerMotor["Gratis"];
 
-        // 3️⃣ Validar límite por plan y motor
+        // 3️Validar límite por plan y motor
         int cantidadActual = user.Instancias.Count(i => i.Motor.Equals(dto.Motor, StringComparison.OrdinalIgnoreCase));
         if (cantidadActual >= limite)
             throw new Exception($"Límite de {limite} bases de datos alcanzado para el plan {user.Plan}.");
 
-        // 4️⃣ Crear nombres únicos y coherentes
+        // 4️Crear nombres únicos y coherentes
         var motorLower = dto.Motor.ToLower();
         var sufijo = Guid.NewGuid().ToString("N").Substring(0, 6);
         var nombre = $"db_{userId}_{motorLower}_{sufijo}";
@@ -72,7 +72,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         var puerto = ObtenerPuertoPorMotor(motorLower);
         var host = ObtenerHostPorMotor(motorLower, _config);
 
-        // 5️⃣ Crear instancia real
+        // 5️Crear instancia real
         try
         {
             await DatabaseCreator.CrearInstanciaRealAsync(motorLower, nombre, usuarioDb, contraseña, puerto, _config);
@@ -83,7 +83,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
             throw new Exception($"Fallo al crear la instancia física: {ex.Message}", ex);
         }
 
-        // 6️⃣ Crear entidad local
+        // 6️crear entidad local
         var instance = new DatabaseInstance
         {
             UsuarioId = userId,
@@ -104,7 +104,6 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         
         try
         {
-            // --- ✅ CORREGIDO: Se usa user.Correo en lugar de user.Email ---
             await _emailService.SendDatabaseCreatedEmailAsync(user.Correo, user.Nombre, instance);
         }
         catch (Exception ex)
@@ -123,7 +122,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     public async Task<bool> DeleteInstanceAsync(int userId, int id)
     {
-        // --- ✅ CORREGIDO: Se usa _context.DatabaseInstances en lugar de _context.Instances ---
+     
         var instance = await _context.DatabaseInstances
             .Include(i => i.User)
             .FirstOrDefaultAsync(i => i.Id == id);
@@ -131,7 +130,6 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         if (instance == null || instance.UsuarioId != userId)
             return false;
         
-        // --- ✅ CORREGIDO: Se usa instance.User.Correo en lugar de instance.User.Email ---
         var userEmail = instance.User.Correo;
         var userName = instance.User.Nombre;
 

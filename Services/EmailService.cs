@@ -15,16 +15,14 @@ public class EmailService : IEmailService
         _emailSettings = emailSettings.Value;
         _discordWebhookService = discordWebhookService;
     }
-
-    // --- ✅ CORREGIDO: Se añaden '?' para resolver advertencias de nulabilidad ---
+    
     private string GetEmailTemplate(string title, string userName, string content, string? buttonText = null, string? buttonUrl = null)
     {
         var buttonHtml = buttonText != null && buttonUrl != null ? 
             $@"<div class='button-container'>
                 <a href='{buttonUrl}' class='button'>{buttonText}</a>
             </div>" : "";
-
-        // --- TU PLANTILLA HTML COMPLETA Y CORRECTA ---
+        
         return $@"<!DOCTYPE html>
 <html lang='es'>
 <head>
@@ -181,7 +179,6 @@ public class EmailService : IEmailService
         await SendEmailAsync(toEmail, subject, body, "Database Deleted");
     }
     
-    // --- ✅ MÉTODO AÑADIDO PARA CUMPLIR CON LA INTERFAZ ---
     public async Task SendPasswordChangedConfirmationAsync(string toEmail, string userName)
     {
         var subject = "Confirmación de cambio de contraseña - CrudCloud";
@@ -194,5 +191,19 @@ public class EmailService : IEmailService
 
         var body = GetEmailTemplate("Contraseña Actualizada", userName, content, "Iniciar Sesión", "https://quasar.andrescortes.dev/login");
         await SendEmailAsync(toEmail, subject, body, "Password Changed Confirmation");
+    }
+    
+    public async Task SendPasswordResetSuccessAsync(string toEmail, string userName)
+    {
+        var subject = "Tu contraseña ha sido restablecida correctamente - CrudCloud";
+        
+        var content = $@"<p>Te confirmamos que la contraseña de tu cuenta ha sido restablecida exitosamente a través de nuestro proceso de recuperación.</p>
+            <div class='highlight'>
+                <strong>Nota de seguridad:</strong> Si no solicitaste este cambio, por favor, contacta a nuestro equipo de soporte inmediatamente para proteger tu cuenta.
+            </div>
+            <p>Ya puedes iniciar sesión con tu nueva contraseña.</p>";
+
+        var body = GetEmailTemplate("Contraseña Restablecida", userName, content, "Iniciar Sesión", "https://quasar.andrescortes.dev/login");
+        await SendEmailAsync(toEmail, subject, body, "Password Reset Success");
     }
 }
