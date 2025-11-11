@@ -25,9 +25,12 @@ public class DatabaseInstanceRepository : IDatabaseInstanceRepository
     public async Task AddAsync(DatabaseInstance instance)
         => await _context.DatabaseInstances.AddAsync(instance);
 
-    public async Task DeleteAsync(DatabaseInstance instance)
-        => _context.DatabaseInstances.Remove(instance);
-
+    public Task DeleteAsync(DatabaseInstance instance)
+    {
+        _context.DatabaseInstances.Remove(instance);
+        return Task.CompletedTask;
+    }
+    
     public async Task SaveChangesAsync()
         => await _context.SaveChangesAsync();
 }
