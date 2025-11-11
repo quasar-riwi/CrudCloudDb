@@ -93,12 +93,33 @@ public class DatabaseCreator
         var connStr = cfg.GetConnectionString("MySQLAdmin");
         using var conn = new MySqlConnection(connStr);
         await conn.OpenAsync();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = $@"
+        
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = $"SELECT ID FROM information_schema.processlist WHERE DB = '{dbName}'";
+            using var reader = await cmd.ExecuteReaderAsync();
+            var processIds = new List<long>();
+            while (await reader.ReadAsync())
+            {
+                processIds.Add(reader.GetInt64(0));
+            }
+            await reader.CloseAsync(); 
+
+            foreach (var id in processIds)
+            {
+                await using var killCmd = new MySqlCommand($"KILL {id};", conn);
+                await killCmd.ExecuteNonQueryAsync();
+            }
+        }
+        
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = $@"
             DROP DATABASE IF EXISTS `{dbName}`;
             DROP USER IF EXISTS '{user}'@'%';
             FLUSH PRIVILEGES;";
-        await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 
     // ---------------- PostgreSQL ----------------
@@ -134,17 +155,42 @@ public class DatabaseCreator
 
     private static async Task EliminarPostgresAsync(string dbName, string user, IConfiguration cfg)
     {
-        var connStr = cfg.GetConnectionString("PostgresAdmin");
-        using var conn = new NpgsqlConnection(connStr);
+        
+        var adminConnStrBuilder = new NpgsqlConnectionStringBuilder(cfg.GetConnectionString("PostgresAdmin"))
+        {
+            Database = "postgres" // Conexión explícita a una base de datos de sistema
+        };
+
+   
+        adminConnStrBuilder.Enlist = false;
+
+        await using var conn = new NpgsqlConnection(adminConnStrBuilder.ConnectionString);
         await conn.OpenAsync();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = $@"
-            REVOKE CONNECT ON DATABASE {dbName} FROM public;
-            SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{dbName}';
-            DROP DATABASE IF EXISTS {dbName};
-            DROP ROLE IF EXISTS {user};";
-        await cmd.ExecuteNonQueryAsync();
+
+        
+        var terminateCmdText = $@"
+            SELECT pg_terminate_backend(pid) 
+            FROM pg_stat_activity 
+            WHERE datname = '{dbName}';";
+        
+        await using (var terminateCmd = new NpgsqlCommand(terminateCmdText, conn))
+        {
+            
+            await terminateCmd.ExecuteNonQueryAsync();
+        }
+
+        
+        await using (var dropDbCmd = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{dbName}\";", conn))
+        {
+            await dropDbCmd.ExecuteNonQueryAsync();
+        }
+
+        await using (var dropUserCmd = new NpgsqlCommand($"DROP ROLE IF EXISTS \"{user}\";", conn))
+        {
+            await dropUserCmd.ExecuteNonQueryAsync();
+        }
     }
+
 
     // ---------------- SQL SERVER ----------------
     private static async Task CrearSqlServerAsync(string dbName, string user, string pwd, IConfiguration cfg)
