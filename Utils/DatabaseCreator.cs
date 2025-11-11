@@ -93,12 +93,33 @@ public class DatabaseCreator
         var connStr = cfg.GetConnectionString("MySQLAdmin");
         using var conn = new MySqlConnection(connStr);
         await conn.OpenAsync();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = $@"
+        
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = $"SELECT ID FROM information_schema.processlist WHERE DB = '{dbName}'";
+            using var reader = await cmd.ExecuteReaderAsync();
+            var processIds = new List<long>();
+            while (await reader.ReadAsync())
+            {
+                processIds.Add(reader.GetInt64(0));
+            }
+            await reader.CloseAsync(); 
+
+            foreach (var id in processIds)
+            {
+                await using var killCmd = new MySqlCommand($"KILL {id};", conn);
+                await killCmd.ExecuteNonQueryAsync();
+            }
+        }
+        
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = $@"
             DROP DATABASE IF EXISTS `{dbName}`;
             DROP USER IF EXISTS '{user}'@'%';
             FLUSH PRIVILEGES;";
-        await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 
     // ---------------- PostgreSQL ----------------
@@ -134,22 +155,19 @@ public class DatabaseCreator
 
     private static async Task EliminarPostgresAsync(string dbName, string user, IConfiguration cfg)
     {
-        // Obtiene la cadena de conexión de administrador.
-        // Nos aseguraremos de conectarnos a una base de datos de mantenimiento como 'postgres'
-        // para poder eliminar la base de datos objetivo.
+        
         var adminConnStrBuilder = new NpgsqlConnectionStringBuilder(cfg.GetConnectionString("PostgresAdmin"))
         {
             Database = "postgres" // Conexión explícita a una base de datos de sistema
         };
 
-        // Usar Enlist=false es crucial para evitar que la conexión se una a transacciones automáticas del ambiente.
+   
         adminConnStrBuilder.Enlist = false;
 
         await using var conn = new NpgsqlConnection(adminConnStrBuilder.ConnectionString);
         await conn.OpenAsync();
 
-        // 1. Terminar todas las conexiones activas a la base de datos que se va a eliminar.
-        // Es necesario porque no se puede eliminar una base de datos con conexiones activas.
+        
         var terminateCmdText = $@"
             SELECT pg_terminate_backend(pid) 
             FROM pg_stat_activity 
@@ -157,14 +175,11 @@ public class DatabaseCreator
         
         await using (var terminateCmd = new NpgsqlCommand(terminateCmdText, conn))
         {
-            // Este comando puede fallar si no hay conexiones, lo cual está bien.
-            // Para un código más robusto, podrías envolverlo en un try-catch si es necesario,
-            // pero para este caso, lo dejamos así.
+            
             await terminateCmd.ExecuteNonQueryAsync();
         }
 
-        // 2. Ejecutar los comandos para eliminar la base de datos y el usuario.
-        // Se ejecutan como comandos separados para mayor claridad y control.
+        
         await using (var dropDbCmd = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{dbName}\";", conn))
         {
             await dropDbCmd.ExecuteNonQueryAsync();
