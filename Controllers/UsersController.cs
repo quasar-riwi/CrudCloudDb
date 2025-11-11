@@ -18,10 +18,8 @@ public class UsersController : ControllerBase
         _userService = userService;
         _discordWebhookService = discordWebhookService;
     }
-
-    /// <summary>
+    
     /// Autentica un usuario y devuelve un token JWT
-    /// </summary>
     [HttpPost("login")]
     [AllowAnonymous] 
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -55,10 +53,8 @@ public class UsersController : ControllerBase
         }
     }
     
-
-    /// <summary>
+    
     /// Registra un nuevo usuario en la plataforma
-    /// </summary>
     [HttpPost("register")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -97,9 +93,8 @@ public class UsersController : ControllerBase
         }
     }
     
-    /// <summary>
+    
     /// Obtiene la lista de todos los usuarios registrados
-    /// </summary>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -115,9 +110,8 @@ public class UsersController : ControllerBase
         });
     }
     
-    /// <summary>
+    
     /// Obtiene el detalle completo de un usuario específico
-    /// </summary>
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -136,9 +130,8 @@ public class UsersController : ControllerBase
         });
     }
     
-    /// <summary>
+    
     /// Actualiza los datos de un usuario existente
-    /// </summary>
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -149,7 +142,7 @@ public class UsersController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // ✅ OBTENER USUARIO ACTUAL ANTES DE LA ACTUALIZACIÓN
+        //  OBTENER USUARIO ACTUAL ANTES DE LA ACTUALIZACIÓN
         var currentUser = await _userService.GetByIdAsync(id);
         if (currentUser == null)
             return NotFound(new { message = "Usuario no encontrado." });
@@ -162,7 +155,7 @@ public class UsersController : ControllerBase
         if (user == null)
             return NotFound(new { message = "Usuario no encontrado." });
 
-        // ✅ ENVIAR NOTIFICACIÓN SI CAMBIÓ EL PLAN
+        // ENVIAR NOTIFICACIÓN SI CAMBIÓ EL PLAN
         if (oldPlan != user.Plan)
         {
             await _discordWebhookService.SendPlanUpdatedAsync(
@@ -180,9 +173,8 @@ public class UsersController : ControllerBase
         });
     }
     
-    /// <summary>
+    
     /// Cambiar Estado del Usuario (Activo/Inactivo)
-    /// </summary>
     [HttpPatch("{id}/status")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -211,9 +203,8 @@ public class UsersController : ControllerBase
         });
     }
     
-    /// <summary>
+    
     /// Verifica el correo electrónico del usuario mediante token
-    /// </summary>
     [HttpGet("verify-email")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -242,9 +233,8 @@ public class UsersController : ControllerBase
         }
     }
 
-    /// <summary>
+    
     /// Solicita un enlace de recuperación de contraseña por email
-    /// </summary>
     [HttpPost("forgot-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -264,9 +254,9 @@ public class UsersController : ControllerBase
         });
     }
 
-    /// <summary>
+    
     /// Resetea la contraseña usando el token de recuperación
-    /// </summary>
+
     [HttpPost("reset-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -295,9 +285,8 @@ public class UsersController : ControllerBase
         }
     }
 
-    /// <summary>
+    
     /// Permite al usuario cambiar su contraseña actual
-    /// </summary>
     [HttpPost("change-password")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
