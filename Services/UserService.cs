@@ -122,9 +122,8 @@ public class UserService : IUserService
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Correo == email);
         
         if (user == null)
-            return false; // Por seguridad, no revelar si el email existe
+            return true; // Por seguridad, no revelar si el email existe
         
-        // Generar token de reseteo
         var resetToken = TokenGenerator.GenerateToken();
         var tokenExpiration = TokenGenerator.GenerateExpirationDate(24);
         
@@ -133,7 +132,6 @@ public class UserService : IUserService
         
         await _context.SaveChangesAsync();
         
-        // Enviar email de recuperación
         try
         {
             await _emailService.SendPasswordResetAsync(user.Correo, user.Nombre, resetToken);
@@ -141,7 +139,6 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             Console.WriteLine($"Error enviando email de recuperación: {ex.Message}");
-            return false;
         }
         
         return true;
@@ -155,16 +152,24 @@ public class UserService : IUserService
         if (user == null)
             return false;
         
-        // Verificar que el token no haya expirado
         if (user.PasswordResetTokenExpires < DateTime.UtcNow)
             throw new InvalidOperationException("El token de recuperación ha expirado. Solicita uno nuevo.");
         
-        // Cambiar contraseña
         user.Contraseña = PasswordHasher.HashPassword(newPassword);
-        user.PasswordResetToken = null; // Limpiar token usado
+        user.PasswordResetToken = null;
         user.PasswordResetTokenExpires = null;
         
         await _context.SaveChangesAsync();
+        
+        // --- ✅ CORRECCIÓN: Enviar correo de confirmación de cambio de contraseña ---
+        try
+        {
+            await _emailService.SendPasswordChangedConfirmationAsync(user.Correo, user.Nombre);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error enviando email de confirmación de cambio de contraseña: {ex.Message}");
+        }
         
         return true;
     }
@@ -177,13 +182,21 @@ public class UserService : IUserService
         if (user == null)
             return false;
         
-        // Verificar contraseña actual
         if (!PasswordHasher.VerifyPassword(currentPassword, user.Contraseña))
             throw new InvalidOperationException("La contraseña actual es incorrecta.");
         
-        // Cambiar a nueva contraseña
         user.Contraseña = PasswordHasher.HashPassword(newPassword);
         await _context.SaveChangesAsync();
+        
+        // --- ✅ CORRECCIÓN: Enviar correo de confirmación de cambio de contraseña ---
+        try
+        {
+            await _emailService.SendPasswordChangedConfirmationAsync(user.Correo, user.Nombre);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error enviando email de confirmación de cambio de contraseña: {ex.Message}");
+        }
         
         return true;
     }

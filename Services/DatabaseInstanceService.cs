@@ -16,19 +16,22 @@ public class DatabaseInstanceService : IDatabaseInstanceService
     private readonly IMapper _mapper;
     private readonly AppDbContext _context;
     private readonly IConfiguration _config;
+    private readonly IEmailService _emailService;
 
     public DatabaseInstanceService(
         IDatabaseInstanceRepository repo,
         IAuditService audit,
         IMapper mapper,
         AppDbContext context,
-        IConfiguration config)
+        IConfiguration config,
+        IEmailService emailService)
     {
         _repo = repo;
         _audit = audit;
         _mapper = mapper;
         _context = context;
         _config = config;
+        _emailService = emailService;
     }
 
     public async Task<IEnumerable<DatabaseInstanceDto>> GetUserInstancesAsync(int userId)
@@ -62,29 +65,17 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
         // 4️⃣ Crear nombres únicos y coherentes
         var motorLower = dto.Motor.ToLower();
-
-        // 🔹 Generar sufijo aleatorio corto (6 caracteres)
         var sufijo = Guid.NewGuid().ToString("N").Substring(0, 6);
-
-        // 🔹 Crear nombres y credenciales únicas por instancia
         var nombre = $"db_{userId}_{motorLower}_{sufijo}";
         var usuarioDb = $"usr_{userId}_{motorLower}_{sufijo}";
         var contraseña = $"Pwd_{motorLower.Substring(0, 2).ToUpper()}_{sufijo}_{new Random().Next(10, 99)}!";
-
         var puerto = ObtenerPuertoPorMotor(motorLower);
         var host = ObtenerHostPorMotor(motorLower, _config);
 
         // 5️⃣ Crear instancia real
         try
         {
-            await DatabaseCreator.CrearInstanciaRealAsync(
-                motorLower,
-                nombre,
-                usuarioDb,
-                contraseña,
-                puerto,
-                _config
-            );
+            await DatabaseCreator.CrearInstanciaRealAsync(motorLower, nombre, usuarioDb, contraseña, puerto, _config);
         }
         catch (Exception ex)
         {
@@ -110,6 +101,16 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         await _repo.SaveChangesAsync();
 
         await _audit.LogAsync(userId, "Create", "DatabaseInstance", $"Creada {dto.Motor}: {instance.Nombre}");
+        
+        try
+        {
+            // --- ✅ CORREGIDO: Se usa user.Correo en lugar de user.Email ---
+            await _emailService.SendDatabaseCreatedEmailAsync(user.Correo, user.Nombre, instance);
+        }
+        catch (Exception ex)
+        {
+            await _audit.LogAsync(userId, "EmailFailed", "DatabaseInstance", $"Fallo al enviar correo para {instance.Nombre}: {ex.Message}");
+        }
 
         var dtoOut = _mapper.Map<DatabaseInstanceDto>(instance);
         dtoOut.UsuarioDb = usuarioDb;
@@ -122,9 +123,17 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     public async Task<bool> DeleteInstanceAsync(int userId, int id)
     {
-        var instance = await _repo.GetByIdAsync(id);
+        // --- ✅ CORREGIDO: Se usa _context.DatabaseInstances en lugar de _context.Instances ---
+        var instance = await _context.DatabaseInstances
+            .Include(i => i.User)
+            .FirstOrDefaultAsync(i => i.Id == id);
+
         if (instance == null || instance.UsuarioId != userId)
             return false;
+        
+        // --- ✅ CORREGIDO: Se usa instance.User.Correo en lugar de instance.User.Email ---
+        var userEmail = instance.User.Correo;
+        var userName = instance.User.Nombre;
 
         try
         {
@@ -140,6 +149,16 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         await _repo.SaveChangesAsync();
 
         await _audit.LogAsync(userId, "Delete", "DatabaseInstance", $"Eliminada {instance.Nombre}");
+        
+        try
+        {
+            await _emailService.SendDatabaseDeletedEmailAsync(userEmail, userName, instance);
+        }
+        catch (Exception ex)
+        {
+            await _audit.LogAsync(userId, "EmailFailed", "DatabaseInstance", $"Fallo al enviar correo de eliminación para {instance.Nombre}: {ex.Message}");
+        }
+
         return true;
     }
 
