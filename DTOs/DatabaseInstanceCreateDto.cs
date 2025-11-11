@@ -6,6 +6,4 @@ public class DatabaseInstanceCreateDto
 {
     [Required]
     public string Motor { get; set; } = string.Empty;
-    [Required]
-    public int UsuarioId { get; set; }
 }

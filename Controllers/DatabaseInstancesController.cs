@@ -16,7 +16,7 @@ public class DatabaseInstancesController : ControllerBase
     private readonly IUserService _userService;
 
     public DatabaseInstancesController(
-        IDatabaseInstanceService service, 
+        IDatabaseInstanceService service,
         IDiscordWebhookService discordWebhookService,
         IUserService userService)
     {
@@ -25,16 +25,24 @@ public class DatabaseInstancesController : ControllerBase
         _userService = userService;
     }
 
+    /// <summary>
+    /// Obtiene las instancias de base de datos del usuario autenticado.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> Get()
     {
+        // Obtiene el ID del usuario desde el token JWT
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             return Unauthorized(new { message = "Usuario no autenticado." });
 
-        var list = await _service.GetUserInstancesAsync(userId);
-        return Ok(list);
+        // Obtiene solo las instancias del usuario
+        var instances = await _service.GetUserInstancesAsync(userId);
+        return Ok(instances);
     }
 
+    /// <summary>
+    /// Crea una nueva instancia de base de datos para el usuario autenticado.
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] DatabaseInstanceCreateDto dto)
     {
@@ -45,44 +53,52 @@ public class DatabaseInstancesController : ControllerBase
         if (user == null)
             return Unauthorized(new { message = "Usuario no encontrado." });
 
+        // Crea la instancia asociada al usuario autenticado
         var result = await _service.CreateInstanceAsync(userId, dto);
-        
+
+        // Notifica en Discord
         await _discordWebhookService.SendDatabaseCreatedAsync(
-            result.Nombre, 
-            dto.Motor.ToString(), 
-            userId.ToString(), 
+            result.Nombre,
+            dto.Motor.ToString(),
+            userId.ToString(),
             $"{user.Nombre} {user.Apellido}"
         );
-        
+
         return Ok(result);
     }
 
+    /// <summary>
+    /// Elimina una instancia solo si pertenece al usuario autenticado.
+    /// </summary>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             return Unauthorized(new { message = "Usuario no autenticado." });
-        
+
+        // Obtiene las instancias del usuario autenticado
         var userInstances = await _service.GetUserInstancesAsync(userId);
         var dbToDelete = userInstances.FirstOrDefault(db => db.Id == id);
-        
+
+        // Verifica propiedad
         if (dbToDelete == null)
-            return Forbid();
-        
+            return Forbid("No tienes permiso para eliminar esta instancia.");
+
         var user = await _userService.GetByIdAsync(userId);
         if (user == null)
             return Unauthorized(new { message = "Usuario no encontrado." });
 
-        var ok = await _service.DeleteInstanceAsync(userId, id);
-        if (!ok) return Forbid();
-        
+        var success = await _service.DeleteInstanceAsync(userId, id);
+        if (!success) return Forbid();
+
+        // Notifica eliminación
         await _discordWebhookService.SendDatabaseDeletedAsync(
-            dbToDelete.Nombre, 
-            dbToDelete.Motor, 
-            userId.ToString(), 
+            dbToDelete.Nombre,
+            dbToDelete.Motor,
+            userId.ToString(),
             $"{user.Nombre} {user.Apellido}"
         );
-        
+
         return NoContent();
     }
 }
