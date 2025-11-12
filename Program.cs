@@ -19,10 +19,14 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: frontendAppPolicy, policy =>
     {
         policy
-            .WithOrigins("https://quasar.andrescortes.dev") // ✅ Especifica el origen de tu frontend
+            .WithOrigins("https://quasar.andrescortes.dev",
+                "http://localhost:5173",
+                "http://localhost:8080",
+                "http://localhost:8081",
+                "http://localhost:5174") 
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials(); // ✅ Permite el envío de credenciales
+            .AllowCredentials(); 
     });
 });
 
