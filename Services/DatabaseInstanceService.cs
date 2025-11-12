@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CrudCloud.api.Services.Interfaces;
 
 namespace CrudCloud.api.Services;
 
@@ -20,7 +21,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
     private readonly IMapper _mapper;
     private readonly AppDbContext _context;
     private readonly IConfiguration _config;
-    private readonly IEmailService _emailService; // Funcionalidad nueva del compañero
+    private readonly IEmailService _emailService;
 
     public DatabaseInstanceService(
         IDatabaseInstanceRepository repo,
@@ -28,7 +29,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         IMapper mapper,
         AppDbContext context,
         IConfiguration config,
-        IEmailService emailService) // Funcionalidad nueva del compañero
+        IEmailService emailService)
     {
         _repo = repo;
         _audit = audit;
@@ -46,7 +47,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     public async Task<DatabaseInstanceDto> CreateInstanceAsync(int userId, DatabaseInstanceCreateDto dto)
     {
-        // ... (lógica de validación sin cambios) ...
+        // ... (lógica de validación) ...
         if (!PlanLimits.MotoresPermitidos.Any(m => m.Equals(dto.Motor, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException($"Motor no permitido: {dto.Motor}");
             
@@ -65,7 +66,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         if (cantidadActual >= limite)
             throw new Exception($"Límite de {limite} bases de datos alcanzado para el plan {user.Plan}.");
 
-        // ... (lógica de creación de nombres sin cambios) ...
+        // ... (lógica de creación de nombres) ...
         var motorLower = dto.Motor.ToLower();
         var sufijo = Guid.NewGuid().ToString("N").Substring(0, 6);
         var nombre = $"db_{userId}_{motorLower}_{sufijo}";
@@ -86,7 +87,6 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
         var instance = new DatabaseInstance
         {
-            // ✅ CORRECCIÓN APLICADA: Se usa 'UserId' en lugar de 'UsuarioId'.
             UserId = userId,
             Motor = dto.Motor,
             Nombre = nombre,
@@ -103,7 +103,6 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
         await _audit.LogAsync(userId, "Create", "DatabaseInstance", $"Creada {dto.Motor}: {instance.Nombre}");
         
-        // Funcionalidad nueva del compañero (integrada)
         try
         {
             await _emailService.SendDatabaseCreatedEmailAsync(user.Correo, user.Nombre, instance);
@@ -124,15 +123,11 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     public async Task<bool> DeleteInstanceAsync(int userId, int id)
     {
-        // ✅ MEJORA: Se usa el repositorio para obtener la instancia, que es su responsabilidad.
         var instance = await _repo.GetByIdAsync(id);
 
-        // ✅ CORRECCIÓN APLICADA: Se usa 'instance.UserId' en lugar de 'instance.UsuarioId'.
         if (instance == null || instance.UserId != userId)
             return false;
         
-        // Para obtener el email, necesitamos cargar el usuario asociado.
-        // Hacemos una consulta explícita ya que el repo no lo incluye por defecto.
         var user = await _context.Users.FindAsync(userId);
         if (user == null)
             throw new Exception("Usuario asociado a la instancia no encontrado.");
@@ -150,13 +145,11 @@ public class DatabaseInstanceService : IDatabaseInstanceService
             throw;
         }
 
-        // ✅ CORRECCIÓN APLICADA: Se llama al método 'Delete' síncrono del repositorio.
         _repo.Delete(instance);
         await _repo.SaveChangesAsync();
 
         await _audit.LogAsync(userId, "Delete", "DatabaseInstance", $"Eliminada {instance.Nombre}");
         
-        // Funcionalidad nueva del compañero (integrada)
         try
         {
             await _emailService.SendDatabaseDeletedEmailAsync(userEmail, userName, instance);
@@ -169,7 +162,24 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         return true;
     }
 
-    // --- Métodos privados sin cambios ---
-    private static int ObtenerPuertoPorMotor(string motor) => motor switch { /* ... */ };
-    private static string ObtenerHostPorMotor(string motor, IConfiguration config) { /* ... */ };
+    private static int ObtenerPuertoPorMotor(string motor) => motor switch
+    {
+        "postgresql" => 5432, 
+        "mysql" => 3307, 
+        "mongodb" => 27017, 
+        "sqlserver" => 1433, 
+        _ => 5000
+    };
+
+    private static string ObtenerHostPorMotor(string motor, IConfiguration config)
+    {
+        return motor switch
+        {
+            "postgresql" => config["Hosts:Postgres"] ?? "88.198.127.218",
+            "mysql" => config["Hosts:MySQL"] ?? "88.198.127.218",
+            "mongodb" => config["Hosts:Mongo"] ?? "88.198.127.218",
+            "sqlserver" => config["Hosts:SqlServer"] ?? "88.198.127.218",
+            _ => "88.198.127.218"
+        };
+    }
 }

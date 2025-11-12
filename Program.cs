@@ -2,8 +2,9 @@ using CrudCloud.api.Data;
 using CrudCloud.api.Middlewares;
 using CrudCloud.api.Models;
 using CrudCloud.api.Repositories;
-using CrudCloud.api.Data.Repositories.Implementations; // ✅ LÍNEA AÑADIDA: Para encontrar las clases de Repositorio.
+using CrudCloud.api.Data.Repositories.Implementations;
 using CrudCloud.api.Services;
+using CrudCloud.api.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;

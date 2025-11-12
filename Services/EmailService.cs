@@ -1,5 +1,7 @@
 using CrudCloud.api.Models;
+using CrudCloud.api.Data.Entities;
 using Microsoft.Extensions.Options;
+using CrudCloud.api.Services.Interfaces;
 using System.Net;
 using System.Net.Mail;
 

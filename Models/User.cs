@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using CrudCloud.api.Data.Entities;
-using System.Collections.Generic; // ✅ Añadido para ICollection
+using System.Collections.Generic;
 
 namespace CrudCloud.api.Models;
 
