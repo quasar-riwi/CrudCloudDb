@@ -118,15 +118,16 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetUserById(int id)
     {
-        var user = await _userService.GetByIdAsync(id);
+        // Ahora el servicio ya nos devuelve el DTO listo para ser enviado
+        var userDto = await _userService.GetByIdAsync(id);
 
-        if (user == null)
+        if (userDto == null)
             return NotFound(new { message = $"Usuario con ID {id} no encontrado." });
 
         return Ok(new
         {
             message = "Usuario obtenido correctamente.",
-            data = user
+            data = userDto // ✅ ¡Devolvemos el DTO directamente!
         });
     }
     

@@ -14,7 +14,7 @@ public class UserService : IUserService
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
-    private readonly IEmailService _emailService; // ⭐ NUEVO
+    private readonly IEmailService _emailService; 
 
     public UserService(AppDbContext context, IConfiguration configuration, IEmailService emailService)
     {
@@ -238,11 +238,40 @@ public class UserService : IUserService
         return user;
     }
 
-    public async Task<User?> GetByIdAsync(int id)
+    public async Task<UserDetailDto?> GetByIdAsync(int id)
     {
-        return await _context.Users
-            .Include(u => u.Instancias)
+        // 1. Hacemos la consulta a la BD incluyendo las instancias relacionadas
+        var user = await _context.Users
+            .Include(u => u.Instancias) // ¡MUY IMPORTANTE! Carga las instancias
             .FirstOrDefaultAsync(u => u.Id == id);
+
+        // 2. Si no se encuentra el usuario, devolvemos null
+        if (user == null)
+        {
+            return null;
+        }
+
+        // 3. Convertimos (mapeamos) la entidad User al DTO UserDetailDto
+        var userDto = new UserDetailDto
+        {
+            Id = user.Id,
+            Nombre = user.Nombre,
+            Apellido = user.Apellido,
+            Correo = user.Correo,
+            Plan = user.Plan,
+            IsActive = user.IsActive,
+            // También convertimos la lista de entidades de Instancias a una lista de DTOs
+            Instancias = user.Instancias.Select(instancia => new DatabaseInstanceDto
+            {
+                Id = instancia.Id,
+                Nombre = instancia.Nombre,
+                Motor = instancia.Motor,
+                Estado = instancia.Estado
+            }).ToList()
+        };
+
+        // 4. Devolvemos el DTO
+        return userDto;
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()
