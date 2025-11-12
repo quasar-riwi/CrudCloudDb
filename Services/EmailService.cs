@@ -103,9 +103,9 @@ public class EmailService : IEmailService
     {
         var message = new MailMessage
         {
-            From = new MailAddress(_emailSettings.SenderEmail, _emailSettings.SenderName),
-            Subject = subject,
-            Body = body,
+            From = new MailAddress(_emailSettings.SenderEmail, _emailSettings.SenderName ?? string.Empty),
+            Subject = subject ?? string.Empty,
+            Body = body ?? string.Empty,
             IsBodyHtml = true,
         };
         message.To.Add(toEmail);
@@ -127,6 +127,25 @@ public class EmailService : IEmailService
             Console.WriteLine($"Fallo crítico al enviar email: {ex.Message}");
             throw;
         }
+    }
+    
+    public async Task SendPaymentConfirmationAsync(string toEmail, string userName, string plan, decimal amount, string paymentId)
+    {
+        var subject = "✅ Pago Confirmado - CrudCloud";
+    
+        var content = $@"<p>¡Tu pago ha sido procesado exitosamente! Aquí están los detalles de tu transacción:</p>
+        <div class='highlight'>
+            <strong>Resumen del Pago</strong><br>
+            • <strong>Plan:</strong> {plan}<br>
+            • <strong>Monto:</strong> ${amount:N2} COP<br>
+            • <strong>ID de Transacción:</strong> {paymentId}<br>
+            • <strong>Fecha:</strong> {DateTime.UtcNow:dd/MM/yyyy HH:mm}
+        </div>
+        <p>Tu suscripción está ahora activa y puedes disfrutar de todas las características de tu nuevo plan.</p>
+        <p>Si tienes alguna pregunta sobre tu facturación, no dudes en contactar a nuestro equipo de soporte.</p>";
+
+        var body = GetEmailTemplate("Pago Confirmado", userName, content);
+        await SendEmailAsync(toEmail, subject, body, "Payment Confirmation");
     }
 
     public async Task SendEmailVerificationAsync(string toEmail, string userName, string verificationToken)

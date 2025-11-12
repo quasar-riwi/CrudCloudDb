@@ -97,8 +97,11 @@ public class DiscordWebhookService : IDiscordWebhookService
         await SendToDiscord(embed, _discordSettings.SystemErrorsWebhookUrl);
     }
 
-    public async Task SendPlanUpdatedAsync(string userEmail, string userId, string oldPlan, string newPlan)
+    // ✅ MÉTODO FALTANTE - AGREGAR ESTE
+    public async Task SendPlanUpdatedAsync(string userEmail, string userId, string oldPlan, string newPlan, decimal? amount = null)
     {
+        var amountText = amount.HasValue ? $"${amount.Value:N2} COP" : "N/A";
+        
         var embed = new
         {
             title = "💰 PLAN UPDATED",
@@ -109,7 +112,8 @@ public class DiscordWebhookService : IDiscordWebhookService
                 new { name = "👤 User", value = userEmail, inline = true },
                 new { name = "🆔 ID", value = userId, inline = true },
                 new { name = "📊 Previous Plan", value = oldPlan, inline = true },
-                new { name = "📈 New Plan", value = newPlan, inline = true }
+                new { name = "📈 New Plan", value = newPlan, inline = true },
+                new { name = "💰 Amount", value = amountText, inline = true }
             },
             timestamp = DateTime.UtcNow
         };
@@ -145,6 +149,66 @@ public class DiscordWebhookService : IDiscordWebhookService
         }
 
         await SendToDiscord(embed, _discordSettings.EmailValidationWebhookUrl);
+    }
+
+    // ✅ MÉTODOS DE PAGOS - AGREGAR ESTOS
+    public async Task SendPaymentCreatedAsync(string userEmail, string userId, string plan, decimal amount)
+    {
+        var embed = new
+        {
+            title = "💳 PAYMENT CREATED",
+            description = "New payment initiated by user",
+            color = 3447003, // Blue
+            fields = new[]
+            {
+                new { name = "👤 User", value = userEmail, inline = true },
+                new { name = "🆔 ID", value = userId, inline = true },
+                new { name = "📦 Plan", value = plan, inline = true },
+                new { name = "💰 Amount", value = $"${amount:N2} COP", inline = true }
+            },
+            timestamp = DateTime.UtcNow
+        };
+
+        await SendToDiscord(embed, _discordSettings.PaymentEventsWebhookUrl);
+    }
+
+    public async Task SendPaymentRejectedAsync(string userEmail, string userId, string plan, decimal amount)
+    {
+        var embed = new
+        {
+            title = "❌ PAYMENT REJECTED",
+            description = "User payment was rejected",
+            color = 15158332, // Red
+            fields = new[]
+            {
+                new { name = "👤 User", value = userEmail, inline = true },
+                new { name = "🆔 ID", value = userId, inline = true },
+                new { name = "📦 Plan", value = plan, inline = true },
+                new { name = "💰 Amount", value = $"${amount:N2} COP", inline = true }
+            },
+            timestamp = DateTime.UtcNow
+        };
+
+        await SendToDiscord(embed, _discordSettings.PaymentEventsWebhookUrl);
+    }
+
+    public async Task SendSubscriptionCancelledAsync(string userEmail, string userId, string plan)
+    {
+        var embed = new
+        {
+            title = "🚫 SUBSCRIPTION CANCELLED",
+            description = "User cancelled their subscription",
+            color = 15105570, // Orange
+            fields = new[]
+            {
+                new { name = "👤 User", value = userEmail, inline = true },
+                new { name = "🆔 ID", value = userId, inline = true },
+                new { name = "📦 Plan", value = plan, inline = true }
+            },
+            timestamp = DateTime.UtcNow
+        };
+
+        await SendToDiscord(embed, _discordSettings.PaymentEventsWebhookUrl);
     }
 
     private async Task SendToDiscord(object embed, string webhookUrl)

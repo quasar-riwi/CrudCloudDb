@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CrudCloud.api.DTOs;
 using CrudCloud.api.Models;
+using CrudCloud.api.Data.Entities;
 
 namespace CrudCloud.api.Mappings;
 
