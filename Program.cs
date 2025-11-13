@@ -1,38 +1,39 @@
 using CrudCloud.api.Data;
 using CrudCloud.api.Middlewares;
-using CrudCloud.api.Repositories;
-using CrudCloud.api.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using CrudCloud.api.Models;
+using CrudCloud.api.Repositories;
+using CrudCloud.api.Data.Repositories.Implementations;
+using CrudCloud.api.Services;
+using CrudCloud.api.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 // 1. DEFINIR POLÍTICA DE CORS
 var frontendAppPolicy = "FrontendAppPolicy";
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: frontendAppPolicy, policy =>
     {
-        policy
-            .WithOrigins("https://quasar.andrescortes.dev",
+        policy.WithOrigins(
                 "http://localhost:5173",
+                "http://localhost:3000",
                 "http://localhost:8080",
-                "http://localhost:8081",
-                "http://localhost:5174") 
+                "https://quasar.andrescortes.dev"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials(); 
+            .AllowCredentials();
     });
 });
 
-
-// 2. HTTP CLIENT (PARA DISCORD WEBHOOKS)
-builder.Services.AddHttpClient();
+// 2. HTTP CLIENT FACTORY (PARA SERVICIOS EXTERNOS)
+builder.Services.AddHttpClient<IMercadoPagoService, MercadoPagoService>();
+builder.Services.AddHttpClient<IDiscordWebhookService, DiscordWebhookService>();
 
 // 3. DATABASE
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -41,15 +42,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // 4. CONFIGURATION SETTINGS
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.Configure<DiscordWebhookSettings>(builder.Configuration.GetSection("DiscordWebhookSettings"));
+builder.Services.Configure<MercadoPagoSettings>(builder.Configuration.GetSection("MercadoPago"));
 
-// 5. SERVICES
+// 5. SERVICES & REPOSITORIES
+// Ahora Program.cs puede encontrar estas clases gracias al 'using' que añadimos arriba.
 builder.Services.AddScoped<IDatabaseInstanceRepository, DatabaseInstanceRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IDatabaseInstanceService, DatabaseInstanceService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IDiscordWebhookService, DiscordWebhookService>(); // ✅ AGREGADO
+
 
 // 6. AUTOMAPPER
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
@@ -60,35 +63,23 @@ var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
 builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!))
-        };
-        
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-                if (!string.IsNullOrEmpty(token))
-                    context.Token = token;
-
-                return Task.CompletedTask;
-            }
-        };
-    });
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!))
+    };
+});
 
 // 8. CONTROLLERS & SWAGGER
 builder.Services.AddAuthorization();
@@ -96,24 +87,24 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Ingrese 'Bearer' seguido de un espacio y el token JWT.\n\nEjemplo: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        In = ParameterLocation.Header,
+        Description = "Ingrese 'Bearer' seguido de un espacio y el token JWT.\n\nEjemplo: Bearer eyJhbGciOiJI..."
     });
 
-    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                Reference = new OpenApiReference
                 {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 }
             },
@@ -129,7 +120,7 @@ app.UseHttpsRedirection();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseRouting();
-app.UseCors("FrontendAppPolicy");
+app.UseCors(frontendAppPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<AuditMiddleware>();

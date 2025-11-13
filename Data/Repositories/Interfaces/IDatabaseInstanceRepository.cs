@@ -1,6 +1,8 @@
-﻿using CrudCloud.api.Models;
+﻿using CrudCloud.api.Data.Entities;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace CrudCloud.api.Repositories;
+namespace CrudCloud.api.Repositories; // Asegúrate de que este sea el namespace correcto
 
 public interface IDatabaseInstanceRepository
 {
@@ -8,6 +10,6 @@ public interface IDatabaseInstanceRepository
     Task<int> CountByUserAndMotorAsync(int userId, string motor);
     Task<DatabaseInstance?> GetByIdAsync(int id);
     Task AddAsync(DatabaseInstance instance);
-    Task DeleteAsync(DatabaseInstance instance);
+    void Delete(DatabaseInstance instance); // ✅ CORRECCIÓN: Cambiado a void síncrono
     Task SaveChangesAsync();
 }

@@ -1,11 +1,16 @@
-﻿using CrudCloud.api.Models;
-using AutoMapper;
+﻿using AutoMapper;
 using CrudCloud.api.Data;
+using CrudCloud.api.Data.Entities;
 using CrudCloud.api.DTOs;
 using CrudCloud.api.Repositories;
 using CrudCloud.api.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using CrudCloud.api.Services.Interfaces;
 
 namespace CrudCloud.api.Services;
 
@@ -42,11 +47,10 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     public async Task<DatabaseInstanceDto> CreateInstanceAsync(int userId, DatabaseInstanceCreateDto dto)
     {
-        // 1️Validar motor permitido
+        // ... (lógica de validación) ...
         if (!PlanLimits.MotoresPermitidos.Any(m => m.Equals(dto.Motor, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException($"Motor no permitido: {dto.Motor}");
-
-        // 2️Obtener usuario y su plan
+            
         var user = await _context.Users
             .Include(u => u.Instancias)
             .FirstOrDefaultAsync(u => u.Id == userId);
@@ -57,13 +61,12 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         var limite = PlanLimits.MaxPerMotor.ContainsKey(user.Plan)
             ? PlanLimits.MaxPerMotor[user.Plan]
             : PlanLimits.MaxPerMotor["Gratis"];
-
-        // 3️Validar límite por plan y motor
+            
         int cantidadActual = user.Instancias.Count(i => i.Motor.Equals(dto.Motor, StringComparison.OrdinalIgnoreCase));
         if (cantidadActual >= limite)
             throw new Exception($"Límite de {limite} bases de datos alcanzado para el plan {user.Plan}.");
 
-        // 4️Crear nombres únicos y coherentes
+        // ... (lógica de creación de nombres) ...
         var motorLower = dto.Motor.ToLower();
         var sufijo = Guid.NewGuid().ToString("N").Substring(0, 6);
         var nombre = $"db_{userId}_{motorLower}_{sufijo}";
@@ -72,7 +75,6 @@ public class DatabaseInstanceService : IDatabaseInstanceService
         var puerto = ObtenerPuertoPorMotor(motorLower);
         var host = ObtenerHostPorMotor(motorLower, _config);
 
-        // 5️Crear instancia real
         try
         {
             await DatabaseCreator.CrearInstanciaRealAsync(motorLower, nombre, usuarioDb, contraseña, puerto, _config);
@@ -83,7 +85,6 @@ public class DatabaseInstanceService : IDatabaseInstanceService
             throw new Exception($"Fallo al crear la instancia física: {ex.Message}", ex);
         }
 
-        // 6️crear entidad local
         var instance = new DatabaseInstance
         {
             UserId = userId,
@@ -122,19 +123,17 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     public async Task<bool> DeleteInstanceAsync(int userId, int id)
     {
-     
-        var instance = await _context.DatabaseInstances
-            .Include(i => i.User)
-            .FirstOrDefaultAsync(i => i.Id == id);
+        var instance = await _repo.GetByIdAsync(id);
 
         if (instance == null || instance.UserId != userId)
             return false;
         
-        if (instance.User == null)
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
             throw new Exception("Usuario asociado a la instancia no encontrado.");
         
-        var userEmail = instance.User.Correo;
-        var userName = instance.User.Nombre;
+        var userEmail = user.Correo;
+        var userName = user.Nombre;
 
         try
         {
@@ -146,7 +145,7 @@ public class DatabaseInstanceService : IDatabaseInstanceService
             throw;
         }
 
-        await _repo.DeleteAsync(instance);
+        _repo.Delete(instance);
         await _repo.SaveChangesAsync();
 
         await _audit.LogAsync(userId, "Delete", "DatabaseInstance", $"Eliminada {instance.Nombre}");
@@ -165,10 +164,10 @@ public class DatabaseInstanceService : IDatabaseInstanceService
 
     private static int ObtenerPuertoPorMotor(string motor) => motor switch
     {
-        "postgresql" => 5432,
-        "mysql" => 3307,
-        "mongodb" => 27017,
-        "sqlserver" => 1433,
+        "postgresql" => 5432, 
+        "mysql" => 3307, 
+        "mongodb" => 27017, 
+        "sqlserver" => 1433, 
         _ => 5000
     };
 
