@@ -14,7 +14,7 @@ public class Subscription
     public int UserId { get; set; }
     
     [ForeignKey("UserId")]
-    public virtual User User { get; set; }
+    public virtual User User { get; set; } = null!;
     
     [Required]
     [MaxLength(50)]
