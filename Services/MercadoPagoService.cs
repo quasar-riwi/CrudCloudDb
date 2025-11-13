@@ -68,9 +68,9 @@ public class MercadoPagoService : IMercadoPagoService
                 payer = new { email = payerEmail, name = $"{user.Nombre} {user.Apellido}" },
                 back_urls = new
                 {
-                    success = $"{_mpSettings.FrontendBaseUrl}/payment/success",
-                    failure = $"{_mpSettings.FrontendBaseUrl}/payment/failure",
-                    pending = $"{_mpSettings.FrontendBaseUrl}/payment/pending"
+                    success = $"{_mpSettings.FrontendBaseUrl}/payment/PaymentSuccess",
+                    failure = $"{_mpSettings.FrontendBaseUrl}/payment/PaymentFailure",
+                    pending = $"{_mpSettings.FrontendBaseUrl}/payment/PaymentPending"
                 },
                 auto_return = "approved",
                 notification_url = $"{_mpSettings.WebhookBaseUrl}/api/payments/webhook",
@@ -95,7 +95,7 @@ public class MercadoPagoService : IMercadoPagoService
             }
 
             var preference = JsonDocument.Parse(responseContent).RootElement;
-            var initPoint = preference.GetProperty("init_point").GetString();
+            var initPoint = preference.GetProperty("init_point").GetString() ?? string.Empty;
             _logger.LogInformation("✅ Preferencia de pago único creada para usuario {UserId}", userId);
             return initPoint;
         }
@@ -169,8 +169,8 @@ public class MercadoPagoService : IMercadoPagoService
             }
             
             var preference = JsonDocument.Parse(responseContent).RootElement;
-            var preferenceId = preference.GetProperty("id").GetString();
-            var initPoint = preference.GetProperty("init_point").GetString();
+            var preferenceId = preference.GetProperty("id").GetString() ?? string.Empty;
+            var initPoint = preference.GetProperty("init_point").GetString() ?? string.Empty;
 
             var newSubscription = new Subscription
             {
@@ -197,7 +197,7 @@ public class MercadoPagoService : IMercadoPagoService
         }
     }
 
-    public async Task<Subscription> GetUserSubscriptionAsync(int userId)
+    public async Task<Subscription?> GetUserSubscriptionAsync(int userId)
     {
         return await _context.Subscriptions
             .Where(s => s.UserId == userId)
@@ -289,8 +289,8 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
         }
         
         var userId = userIdElement.GetInt32();
-        var plan = metadata.TryGetProperty("plan", out var p) ? p.GetString() : "desconocido";
-        var status = paymentInfo.GetProperty("status").GetString();
+        var plan = metadata.TryGetProperty("plan", out var p) ? p.GetString() ?? "desconocido" : "desconocido";
+        var status = paymentInfo.GetProperty("status").GetString() ?? "unknown";
 
         // 4. CREAR/ACTUALIZAR REGISTRO DE PAGO EN DB
         var existingPayment = await _context.Payments.FirstOrDefaultAsync(p => p.MercadoPagoPaymentId == paymentId);
@@ -307,13 +307,13 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
             {
                 UserId = userId,
                 MercadoPagoPaymentId = paymentId,
-                Status = status,
-                Plan = plan,
+                Status = status ?? "unknown",
+                Plan = plan ?? "desconocido",
                 Amount = paymentInfo.GetProperty("transaction_amount").GetDecimal(),
-                Currency = paymentInfo.GetProperty("currency_id").GetString(),
-                Description = paymentInfo.GetProperty("description").GetString(),
-                PaymentMethod = paymentInfo.GetProperty("payment_method_id").GetString(),
-                PaymentType = paymentInfo.GetProperty("payment_type_id").GetString(),
+                Currency = paymentInfo.GetProperty("currency_id").GetString() ?? "COP",
+                Description = paymentInfo.GetProperty("description").GetString() ?? string.Empty,
+                PaymentMethod = paymentInfo.GetProperty("payment_method_id").GetString() ?? "unknown",
+                PaymentType = paymentInfo.GetProperty("payment_type_id").GetString() ?? "unknown",
             });
         }
         
@@ -335,25 +335,30 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
                 var oldPlan = user.Plan;
                 user.Plan = plan;
                 await _context.SaveChangesAsync();
-                await NotifySuccess(user, oldPlan, plan, paymentInfo.GetProperty("transaction_amount").GetDecimal(), paymentId);
+                await NotifySuccess(user, oldPlan, plan ?? "desconocido", paymentInfo.GetProperty("transaction_amount").GetDecimal(), paymentId);
             }
         }
-        else if (status == "rejected" || status == "chargeback") // ✅ LÓGICA DE RECHAZO AÑADIDA
+        else if (status == "rejected" || status == "chargeback")
         {
             // Se ejecuta si es un cobro recurrente FALLIDO.
             if (user.Plan != "gratis")
             {
                 var oldPlan = user.Plan;
-                user.Plan = "suspendido"; // Baja el plan del usuario
+                user.Plan = "suspendido";
                 await _context.SaveChangesAsync();
                 
-                // Notificar al usuario y a Discord sobre el rechazo del cobro recurrente
-                await _discordWebhookService.SendPaymentRejectedAsync(user.Correo, user.Id.ToString(), plan, paymentInfo.GetProperty("transaction_amount").GetDecimal());
+                await _discordWebhookService.SendPaymentRejectedAsync(user.Correo, user.Id.ToString(), plan ?? "desconocido", paymentInfo.GetProperty("transaction_amount").GetDecimal());
             }
         }
         
         return true;
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "❌ Error procesando webhook de pago con ID: {PaymentId}", paymentId);
+        return false;
+    }
+}
     
     private async Task<bool> ProcessSubscriptionWebhookAsync(PaymentNotification notification)
     {
@@ -379,7 +384,7 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
             }
             
             var userId = userIdElement.GetInt32();
-            var status = subscriptionInfo.GetProperty("status").GetString();
+            var status = subscriptionInfo.GetProperty("status").GetString() ?? "unknown";
             
             var localSubscription = await _context.Subscriptions.FirstOrDefaultAsync(s => s.UserId == userId);
             if(localSubscription != null)
@@ -430,7 +435,7 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
         };
     }
     
-    public async Task<Payment> GetPaymentByMpIdAsync(string mercadoPagoPaymentId)
+    public async Task<Payment?> GetPaymentByMpIdAsync(string mercadoPagoPaymentId)
     {
         return await _context.Payments
             .FirstOrDefaultAsync(p => p.MercadoPagoPaymentId == mercadoPagoPaymentId);
