@@ -33,7 +33,7 @@ public class DatabaseInstance
     /// El atributo ForeignKey aquí le dice a EF que 'UserId' es la clave externa.
     /// </summary>
     [ForeignKey("UserId")]
-    public virtual User User { get; set; }
+    public virtual User User { get; set; } = null!;
 
     // --- FIN DE LA SECCIÓN CORREGIDA ---
 

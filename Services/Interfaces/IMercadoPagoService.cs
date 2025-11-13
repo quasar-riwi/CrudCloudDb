@@ -11,10 +11,10 @@ public interface IMercadoPagoService
     
     Task<bool> ProcessPaymentNotificationAsync(PaymentNotification notification);
     
-    Task<Subscription> GetUserSubscriptionAsync(int userId);
+    Task<Subscription?> GetUserSubscriptionAsync(int userId);
     
     Task<string> CreateOneTimePaymentAsync(int userId, string plan);
 
-    Task<Payment> GetPaymentByMpIdAsync(string mercadoPagoPaymentId);
+    Task<Payment?> GetPaymentByMpIdAsync(string mercadoPagoPaymentId);
     (string MpPlanId, decimal Price) GetPlanConfiguration(string plan);
 }
