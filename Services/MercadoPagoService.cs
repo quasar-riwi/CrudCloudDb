@@ -121,12 +121,10 @@ public class MercadoPagoService : IMercadoPagoService
             var planConfig = GetPlanConfiguration(plan);
             var payerEmail = user.Correo;
 
-            // ✅ CORRECCIÓN: Usamos el endpoint de Checkout Preferences.
             var checkoutData = new
             {
                 reason = $"Suscripción Plan {plan} - CrudCloud",
                 payer_email = payerEmail,
-                // ✅ ITEMS ES OBLIGATORIO PARA CUALQUIER CHECKOUT
                 items = new[] 
                 {
                     new 
@@ -134,7 +132,7 @@ public class MercadoPagoService : IMercadoPagoService
                         title = $"Suscripción Plan {plan} - CrudCloud",
                         description = $"Primer cobro de suscripción mensual",
                         quantity = 1,
-                        currency_id = "COP", // o ARS, MXN, etc.
+                        currency_id = "COP",
                         unit_price = planConfig.Price
                     }
                 },
@@ -145,7 +143,6 @@ public class MercadoPagoService : IMercadoPagoService
                     pending = $"{_mpSettings.FrontendBaseUrl}/payment/PaymentPending"
                 },
                 notification_url = $"{_mpSettings.WebhookBaseUrl}/api/payments/webhook",
-                // ✅ LA CLAVE: Este objeto le dice al Checkout que cree una suscripción.
                 auto_recurring = new
                 {
                     frequency = 1,
@@ -158,7 +155,6 @@ public class MercadoPagoService : IMercadoPagoService
 
             var jsonContent = new StringContent(JsonSerializer.Serialize(checkoutData), Encoding.UTF8, "application/json");
             
-            // ✅ CORRECCIÓN: Apuntamos al endpoint de preferencias.
             var response = await _httpClient.PostAsync($"{_mpSettings.BaseUrl}/checkout/preferences", jsonContent);
             var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -175,7 +171,6 @@ public class MercadoPagoService : IMercadoPagoService
             var newSubscription = new Subscription
             {
                 UserId = userId,
-                // Guardamos el ID de la preferencia como referencia inicial
                 MercadoPagoSubscriptionId = preferenceId,
                 Status = "pending",
                 Plan = plan,
@@ -237,7 +232,6 @@ public class MercadoPagoService : IMercadoPagoService
 
 private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notification)
 {
-    // 1. OBTENER PAYMENT ID DE FORMA SEGURA (Maneja string o number)
     string paymentId;
     
     if (notification.Data.ValueKind == JsonValueKind.Object && notification.Data.TryGetProperty("id", out var idElement))
@@ -270,7 +264,6 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
 
     try
     {
-        // 2. CONSULTAR ESTADO REAL DEL PAGO EN MP
         var paymentResponse = await _httpClient.GetAsync($"{_mpSettings.BaseUrl}/v1/payments/{paymentId}");
         if (!paymentResponse.IsSuccessStatusCode)
         {
@@ -281,7 +274,6 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
         var paymentData = await paymentResponse.Content.ReadAsStringAsync();
         var paymentInfo = JsonDocument.Parse(paymentData).RootElement;
         
-        // 3. EXTRAER METADATA
         if (!paymentInfo.TryGetProperty("metadata", out var metadata) || !metadata.TryGetProperty("user_id", out var userIdElement))
         {
              _logger.LogError("❌ El pago {PaymentId} no tiene metadata o 'user_id' es inválido.", paymentId);
@@ -292,7 +284,6 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
         var plan = metadata.TryGetProperty("plan", out var p) ? p.GetString() ?? "desconocido" : "desconocido";
         var status = paymentInfo.GetProperty("status").GetString() ?? "unknown";
 
-        // 4. CREAR/ACTUALIZAR REGISTRO DE PAGO EN DB
         var existingPayment = await _context.Payments.FirstOrDefaultAsync(p => p.MercadoPagoPaymentId == paymentId);
         if (existingPayment != null)
         {
@@ -302,7 +293,6 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
         }
         else
         {
-            // Crea un nuevo registro
             _context.Payments.Add(new Payment
             {
                 UserId = userId,
@@ -319,7 +309,6 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
         
         await _context.SaveChangesAsync();
         
-        // 5. MANEJO DE ESTADO DE USUARIO Y NOTIFICACIONES
         var user = await _context.Users.FindAsync(userId);
         if (user == null)
         {
@@ -329,8 +318,7 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
 
         if (status == "approved")
         {
-            // Se ejecuta en el PRIMER PAGO o si es un cobro recurrente EXITOSO.
-            if (user.Plan != plan)
+            if (user.Plan != plan && plan != null) 
             {
                 var oldPlan = user.Plan;
                 user.Plan = plan;
@@ -340,7 +328,6 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
         }
         else if (status == "rejected" || status == "chargeback")
         {
-            // Se ejecuta si es un cobro recurrente FALLIDO.
             if (user.Plan != "gratis")
             {
                 var oldPlan = user.Plan;
@@ -409,7 +396,6 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
     {
         try
         {
-            // Nota: Estos métodos deben existir en IDiscordWebhookService e IEmailService
             await _discordWebhookService.SendPlanUpdatedAsync(user.Correo, user.Id.ToString(), oldPlan, newPlan, amount);
             await _emailService.SendPaymentConfirmationAsync(user.Correo, user.Nombre, newPlan, amount, paymentId);
             await _emailService.SendPlanUpgradeNotificationAsync(user.Correo, user.Nombre, oldPlan, newPlan);
@@ -426,7 +412,6 @@ private async Task<bool> ProcessPaymentWebhookAsync(PaymentNotification notifica
 
     public (string MpPlanId, decimal Price) GetPlanConfiguration(string plan)
     {
-        // ✅ USANDO LOS IDS FINALES DE PRODUCCIÓN PARA EL VENDEDOR DE PRUEBA
         return plan.ToLowerInvariant() switch
         {
             "intermedio" => ("054c4834a79a458788af359413ba9b10", 1600.00m),

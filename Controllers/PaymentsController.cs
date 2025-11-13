@@ -77,7 +77,7 @@ public class PaymentsController : ControllerBase
             if (subscription == null)
                 return NotFound(new { message = "No subscription found for this user." });
 
-            return Ok(subscription);
+            return Ok(subscription!);
         }
         catch (Exception ex)
         {
