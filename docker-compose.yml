@@ -3,7 +3,7 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_PASSWORD: Rbx9VFKMvseaAiVwjfvA
+      POSTGRES_PASSWORD: P0stgr3$QL_M@xmum$3cur1ty#R7dKpL92024
     ports:
       - "5432:5432"
 
@@ -18,7 +18,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
-      SA_PASSWORD: "Admin123!"
+      SA_PASSWORD: "Sql$3rv3r_2024_S3gur0#Xy8zP9"
     ports:
       - "1433:1433"
 
